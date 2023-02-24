@@ -47,7 +47,7 @@ class SsuBridge extends BridgeAbstract
 					
 					$content = $post_page->find('.editor-block')[0];
 					if (!$content) continue;
-					$item['content'] = $content->outertext;
+					$item['content'] = $content->innertext;
 				}
 				$this->items[] = $item;
             // }
