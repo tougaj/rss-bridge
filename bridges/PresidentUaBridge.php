@@ -57,7 +57,7 @@ function get_post_data($post, $with_text){
 	if ($time){
 		$dateString = $time->plaintext;
 		$date = DateTime::createFromFormat('D, d M Y H:i:s O', $dateString);
-		$isoDate = $date->format('Y-m-d\TH:i:s\Z');
+		$isoDate = $date->format("Y-m-d\\TH:i:sO");
 		$item['timestamp'] = $isoDate;
 	}
 	$item['title'] = $item['title'];
