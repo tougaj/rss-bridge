@@ -17,23 +17,25 @@ function translate_date_to_english($string) {
 		$string
 	);
 
-	$timestamp = strtotime($string);
-	if ($timestamp !== false) {
-		return $string;
-	}
-	return date('Y-m-d\TH:i:sO');
+	return $string;
 
-	$today = time();
-	switch ($string) {
-		case 'сегодня':
-		case 'сьогодні':
-			return $today;
-		case 'завтра':
-			return strtotime('+1 day', $today);
-		case 'вчера':
-		case 'вчора':
-			return strtotime('-1 day', $today);
-		default:
-			return $today;
-	}
+	// $timestamp = strtotime($string);
+	// if ($timestamp !== false) {
+	// 	return $string;
+	// }
+	// return date($format);
+
+	// $today = time();
+	// switch ($string) {
+	// 	case 'сегодня':
+	// 	case 'сьогодні':
+	// 		return $today;
+	// 	case 'завтра':
+	// 		return strtotime('+1 day', $today);
+	// 	case 'вчера':
+	// 	case 'вчора':
+	// 		return strtotime('-1 day', $today);
+	// 	default:
+	// 		return $today;
+	// }
 }

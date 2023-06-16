@@ -22,6 +22,7 @@ class SsuBridge extends BridgeAbstract
 		$dom = defaultLinkTo(getSimpleHTMLDOM('https://www.ssu.gov.ua/novyny'), 'https://www.ssu.gov.ua/');
 		if (!isset($dom)) returnClientError('Your error message');
 
+		$timezone = new DateTimeZone('Europe/Kyiv');
 		foreach ($dom->find('article.news-preview') as $post) {
 			$title = $post->find('a.news-title')[0];
 			if (!$title) continue;
@@ -43,7 +44,14 @@ class SsuBridge extends BridgeAbstract
 
 					$time = $post_page->find('time')[0];
 					if (!$time) continue;
-					$item['timestamp'] = translate_date_to_english($time->plaintext);
+
+					$dateString = translate_date_to_english($time->plaintext);
+					// 12:00, 16 june 2023
+					// Формати тут: https://www.php.net/manual/en/datetime.format.php
+					$date = DateTime::createFromFormat("H:i, j F Y", $dateString, $timezone);
+					$isoDate = $date->format("Y-m-d\\TH:i:sO");
+					// echo $isoDate;
+					$item['timestamp'] = $isoDate;
 					
 					$content = $post_page->find('.editor-block')[0];
 					if (!$content) continue;
