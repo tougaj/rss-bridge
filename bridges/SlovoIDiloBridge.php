@@ -22,7 +22,7 @@ class SlovoIDiloBridge extends BridgeAbstract
 		$dom = defaultLinkTo(getSimpleHTMLDOM('https://www.slovoidilo.ua/publikacii'), 'https://www.slovoidilo.ua/');
 		if (!isset($dom)) returnClientError('Your error message');
 
-		$timezone = new DateTimeZone(date_default_timezone_get());
+		$timezone = new DateTimeZone('Europe/Kyiv');
 		foreach ($dom->find('.story') as $post) {
 			$title = $post->find('.story-heading>a')[0];
 			if (!$title) continue;
@@ -38,8 +38,8 @@ class SlovoIDiloBridge extends BridgeAbstract
 				$dateString = $post->find('time')[0];
 				$dateString = $dateString->getAttribute('datetime');
 				$date = DateTime::createFromFormat('Y-m-d H:i:s', $dateString, $timezone);
-				$isoDate = $date->format('Y-m-d\TH:i:sO');
-				echo $isoDate . ' ';
+				$isoDate = $date->format("Y-m-d\\TH:i:sO");
+				// echo $isoDate . ' ';
 				$item['timestamp'] = $isoDate;
 
 				$i = 0;
@@ -50,6 +50,9 @@ class SlovoIDiloBridge extends BridgeAbstract
 					if (!$content) continue;
 
 					$garbage = array_merge(
+						$content->find('.lead-image'),
+						$content->find('section.publication-card'),
+						$content->find('i.icon'),
 						$content->find('script'),
 						$content->find('style'),
 						$content->find('a[style="text-decoration:none"]')
