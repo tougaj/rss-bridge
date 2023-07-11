@@ -55,6 +55,8 @@ final class Logger
                 'Unable to find channel. The channel is non-existing or non-public',
                 // fb
                 'This group is not public! RSS-Bridge only supports public groups!',
+                // tiktok 404
+                'https://www.tiktok.com/@',
             ];
             foreach ($ignoredExceptions as $ignoredException) {
                 if (str_starts_with($e->getMessage(), $ignoredException)) {
@@ -77,6 +79,6 @@ final class Logger
 
         // Log to file
         // todo: extract to log handler
-        //file_put_contents('/tmp/rss-bridge.log', $text, FILE_APPEND);
+        // file_put_contents('/tmp/rss-bridge.log', $text, FILE_APPEND | LOCK_EX);
     }
 }
