@@ -55,6 +55,8 @@ final class Logger
                 'Unable to find channel. The channel is non-existing or non-public',
                 // fb
                 'This group is not public! RSS-Bridge only supports public groups!',
+                'You must be logged in to view this page',
+                'Unable to get the page id. You should consider getting the ID by hand',
                 // tiktok 404
                 'https://www.tiktok.com/@',
             ];
@@ -64,13 +66,24 @@ final class Logger
                 }
             }
         }
-        // Intentionally not sanitizing $message
+
+        if ($context) {
+            try {
+                $context = Json::encode($context);
+            } catch (\JsonException $e) {
+                $context['message'] = null;
+                $context = Json::encode($context);
+            }
+        } else {
+            $context = '';
+        }
         $text = sprintf(
             "[%s] rssbridge.%s %s %s\n",
             now()->format('Y-m-d H:i:s'),
             $level,
+            // Intentionally not sanitizing $message
             $message,
-            $context ? Json::encode($context) : ''
+            $context
         );
 
         // Log to stderr/stdout whatever that is
@@ -79,6 +92,6 @@ final class Logger
 
         // Log to file
         // todo: extract to log handler
-        // file_put_contents('/tmp/rss-bridge.log', $text, FILE_APPEND | LOCK_EX);
+        //$bytes = file_put_contents('/tmp/rss-bridge.log', $text, FILE_APPEND | LOCK_EX);
     }
 }

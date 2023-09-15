@@ -2,27 +2,10 @@
 
 final class RssBridge
 {
+    private static HttpClient $httpClient;
     private static CacheInterface $cache;
 
-    public function main(array $argv = [])
-    {
-        if ($argv) {
-            parse_str(implode('&', array_slice($argv, 1)), $cliArgs);
-            $request = $cliArgs;
-        } else {
-            $request = array_merge($_GET, $_POST);
-        }
-
-        try {
-            $this->run($request);
-        } catch (\Throwable $e) {
-            Logger::error('Exception in main', ['e' => $e]);
-            http_response_code(500);
-            print render(__DIR__ . '/../templates/error.html.php', ['e' => $e]);
-        }
-    }
-
-    private function run($request): void
+    public function __construct()
     {
         Configuration::verifyInstallation();
 
@@ -31,6 +14,13 @@ final class RssBridge
             $customConfig = parse_ini_file(__DIR__ . '/../config.ini.php', true, INI_SCANNER_TYPED);
         }
         Configuration::loadConfiguration($customConfig, getenv());
+
+        set_exception_handler(function (\Throwable $e) {
+            Logger::error('Uncaught Exception', ['e' => $e]);
+            http_response_code(500);
+            print render(__DIR__ . '/../templates/error.html.php', ['e' => $e]);
+            exit(1);
+        });
 
         set_error_handler(function ($code, $message, $file, $line) {
             if ((error_reporting() & $code) === 0) {
@@ -44,7 +34,6 @@ final class RssBridge
             );
             Logger::warning($text);
             if (Debug::isEnabled()) {
-                // todo: extract to log handler
                 print sprintf("<pre>%s</pre>\n", e($text));
             }
         });
@@ -71,47 +60,74 @@ final class RssBridge
         // Consider: ini_set('error_reporting', E_ALL & ~E_DEPRECATED);
         date_default_timezone_set(Configuration::getConfig('system', 'timezone'));
 
-        // Create cache
+        self::$httpClient = new CurlHttpClient();
+
         $cacheFactory = new CacheFactory();
-        self::setCache($cacheFactory->create());
+        if (Debug::isEnabled()) {
+            self::$cache = $cacheFactory->create('array');
+        } else {
+            self::$cache = $cacheFactory->create();
+        }
 
         if (Configuration::getConfig('authentication', 'enable')) {
             $authenticationMiddleware = new AuthenticationMiddleware();
             $authenticationMiddleware();
         }
+    }
 
-        foreach ($request as $key => $value) {
-            if (!is_string($value)) {
-                throw new \Exception("Query parameter \"$key\" is not a string.");
+    public function main(array $argv = []): void
+    {
+        if ($argv) {
+            parse_str(implode('&', array_slice($argv, 1)), $cliArgs);
+            $request = $cliArgs;
+        } else {
+            $request = array_merge($_GET, $_POST);
+        }
+
+        try {
+            foreach ($request as $key => $value) {
+                if (!is_string($value)) {
+                    throw new \Exception("Query parameter \"$key\" is not a string.");
+                }
             }
-        }
 
-        $actionName = $request['action'] ?? 'Frontpage';
-        $actionName = strtolower($actionName) . 'Action';
-        $actionName = implode(array_map('ucfirst', explode('-', $actionName)));
+            $actionName = $request['action'] ?? 'Frontpage';
+            $actionName = strtolower($actionName) . 'Action';
+            $actionName = implode(array_map('ucfirst', explode('-', $actionName)));
 
-        $filePath = __DIR__ . '/../actions/' . $actionName . '.php';
-        if (!file_exists($filePath)) {
-            throw new \Exception(sprintf('Invalid action: %s', $actionName));
-        }
-        $className = '\\' . $actionName;
-        $action = new $className();
+            $filePath = __DIR__ . '/../actions/' . $actionName . '.php';
+            if (!file_exists($filePath)) {
+                throw new \Exception('Invalid action', 400);
+            }
+            $className = '\\' . $actionName;
+            $action = new $className();
 
-        $response = $action->execute($request);
-        if (is_string($response)) {
-            print $response;
-        } elseif ($response instanceof Response) {
-            $response->send();
+            $response = $action->execute($request);
+            if (is_string($response)) {
+                print $response;
+            } elseif ($response instanceof Response) {
+                $response->send();
+            }
+        } catch (\Throwable $e) {
+            Logger::error('Exception in RssBridge::main()', ['e' => $e]);
+            http_response_code(500);
+            print render(__DIR__ . '/../templates/error.html.php', ['e' => $e]);
         }
+    }
+
+    public static function getHttpClient(): HttpClient
+    {
+        return self::$httpClient;
     }
 
     public static function getCache(): CacheInterface
     {
-        return self::$cache;
+        return self::$cache ?? new NullCache();
     }
 
-    public static function setCache(CacheInterface $cache): void
+    public function clearCache()
     {
-        self::$cache = $cache;
+        $cache = self::getCache();
+        $cache->clear();
     }
 }

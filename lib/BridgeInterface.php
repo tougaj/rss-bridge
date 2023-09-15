@@ -57,13 +57,10 @@ interface BridgeInterface
 {
     /**
      * Collects data from the site
+     *
+     * @return void
      */
     public function collectData();
-
-    /**
-    * Get the user's supplied configuration for the bridge
-    */
-    public function getConfiguration();
 
     /**
      * Returns the value for the selected configuration

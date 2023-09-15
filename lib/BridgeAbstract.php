@@ -58,8 +58,6 @@ abstract class BridgeAbstract implements BridgeInterface
 
     /**
      * Configuration for the bridge
-     *
-     * Use {@see BridgeAbstract::getConfiguration()} to read this parameter
      */
     const CONFIGURATION = [];
 
@@ -113,6 +111,15 @@ abstract class BridgeAbstract implements BridgeInterface
      */
     protected $queriedContext = '';
 
+    /**
+     * Holds the list of bridge-specific configurations from config.ini.php, used by the bridge.
+     */
+    private array $configuration = [];
+
+    public function __construct()
+    {
+    }
+
     /** {@inheritdoc} */
     public function getItems()
     {
@@ -144,6 +151,10 @@ abstract class BridgeAbstract implements BridgeInterface
         }
 
         foreach ($contexts as $context) {
+            if (!isset(static::PARAMETERS[$context])) {
+                // unknown context provided by client, throw exception here? or continue?
+            }
+
             foreach (static::PARAMETERS[$context] as $name => $properties) {
                 if (isset($this->inputs[$context][$name]['value'])) {
                     continue;
@@ -153,11 +164,7 @@ abstract class BridgeAbstract implements BridgeInterface
 
                 switch ($type) {
                     case 'checkbox':
-                        if (!isset($properties['defaultValue'])) {
-                            $this->inputs[$context][$name]['value'] = false;
-                        } else {
-                            $this->inputs[$context][$name]['value'] = $properties['defaultValue'];
-                        }
+                        $this->inputs[$context][$name]['value'] = $inputs[$context][$name]['value'] ?? false;
                         break;
                     case 'list':
                         if (!isset($properties['defaultValue'])) {
@@ -184,10 +191,14 @@ abstract class BridgeAbstract implements BridgeInterface
             foreach (static::PARAMETERS['global'] as $name => $properties) {
                 if (isset($inputs[$name])) {
                     $value = $inputs[$name];
-                } elseif (isset($properties['defaultValue'])) {
-                    $value = $properties['defaultValue'];
                 } else {
-                    continue;
+                    if ($properties['type'] ?? null === 'checkbox') {
+                        $value = false;
+                    } elseif (isset($properties['defaultValue'])) {
+                        $value = $properties['defaultValue'];
+                    } else {
+                        continue;
+                    }
                 }
                 $this->inputs[$queriedContext][$name]['value'] = $value;
             }
@@ -362,12 +373,6 @@ abstract class BridgeAbstract implements BridgeInterface
     }
 
     /** {@inheritdoc} */
-    public function getConfiguration()
-    {
-        return static::CONFIGURATION;
-    }
-
-    /** {@inheritdoc} */
     public function getParameters()
     {
         return static::PARAMETERS;
@@ -409,26 +414,13 @@ abstract class BridgeAbstract implements BridgeInterface
     /**
      * Loads a cached value for the specified key
      *
-     * @param int $duration Cache duration (optional)
      * @return mixed Cached value or null if the key doesn't exist or has expired
      */
-    protected function loadCacheValue(string $key, $duration = null)
+    protected function loadCacheValue(string $key)
     {
         $cache = RssBridge::getCache();
-        // Create class name without the namespace part
-        $scope = $this->getShortName();
-        $cache->setScope($scope);
-        $cache->setKey([$key]);
-        $timestamp = $cache->getTime();
-
-        if (
-            $duration
-            && $timestamp
-            && $timestamp < time() - $duration
-        ) {
-            return null;
-        }
-        return $cache->loadData();
+        $cacheKey = $this->getShortName() . '_' . $key;
+        return $cache->get($cacheKey);
     }
 
     /**
@@ -436,13 +428,11 @@ abstract class BridgeAbstract implements BridgeInterface
      *
      * @param mixed $value Value to cache
      */
-    protected function saveCacheValue(string $key, $value)
+    protected function saveCacheValue(string $key, $value, $ttl = 86400)
     {
         $cache = RssBridge::getCache();
-        $scope = $this->getShortName();
-        $cache->setScope($scope);
-        $cache->setKey([$key]);
-        $cache->saveData($value);
+        $cacheKey = $this->getShortName() . '_' . $key;
+        $cache->set($cacheKey, $value, $ttl);
     }
 
     public function getShortName(): string

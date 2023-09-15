@@ -8,6 +8,7 @@
 
 ; Only these bridges are available for feed production
 ; How to enable all bridges: enabled_bridges[] = *
+enabled_bridges[] = CssSelectorBridge
 enabled_bridges[] = FeedMerge
 enabled_bridges[] = FeedReducerBridge
 enabled_bridges[] = Filter
@@ -54,7 +55,7 @@ max_filesize = 20
 
 [cache]
 
-; Cache type: file, sqlite, memcached, null
+; Cache type: file, sqlite, memcached, array, null
 type = "file"
 
 ; Allow users to specify custom timeout for specific requests.

@@ -14,14 +14,18 @@ while ($next) { /* Collect all contributors */
         'Content-Type' => 'application/json',
         'User-Agent' => 'RSS-Bridge',
     ];
-    $result = _http_request($url, ['headers' => $headers]);
+    $httpClient = new CurlHttpClient();
+    $response = $httpClient->request($url, ['headers' => $headers]);
 
-    foreach (json_decode($result['body']) as $contributor) {
+    $json = $response->getBody();
+    $json_decode = Json::decode($json, false);
+    foreach ($json_decode as $contributor) {
         $contributors[] = $contributor;
     }
 
     // Extract links to "next", "last", etc...
-    $links = explode(',', $result['headers']['link'][0]);
+    $link1 = $response->getHeader('link');
+    $links = explode(',', $link1);
     $next = false;
 
     // Check if there is a link with 'rel="next"'

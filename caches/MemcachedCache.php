@@ -1,110 +1,56 @@
 <?php
 
+declare(strict_types=1);
+
 class MemcachedCache implements CacheInterface
 {
-    private string $scope;
-    private string $key;
-    private $conn;
-    private $expiration = 0;
-    private $time = null;
-    private $data = null;
+    private \Memcached $conn;
 
-    public function __construct()
+    public function __construct(string $host, int $port)
     {
-        if (!extension_loaded('memcached')) {
-            throw new \Exception('"memcached" extension not loaded. Please check "php.ini"');
+        $this->conn = new \Memcached();
+        // This call does not actually connect to server yet
+        if (!$this->conn->addServer($host, $port)) {
+            throw new \Exception('Unable to add memcached server');
         }
-
-        $section = 'MemcachedCache';
-        $host = Configuration::getConfig($section, 'host');
-        $port = Configuration::getConfig($section, 'port');
-
-        if (empty($host) && empty($port)) {
-            throw new \Exception('Configuration for ' . $section . ' missing.');
-        }
-        if (empty($host)) {
-            throw new \Exception('"host" param is not set for ' . $section);
-        }
-        if (empty($port)) {
-            throw new \Exception('"port" param is not set for ' . $section);
-        }
-        if (!ctype_digit($port)) {
-            throw new \Exception('"port" param is invalid for ' . $section);
-        }
-
-        $port = intval($port);
-
-        if ($port < 1 || $port > 65535) {
-            throw new \Exception('"port" param is invalid for ' . $section);
-        }
-
-        $conn = new \Memcached();
-        $conn->addServer($host, $port) or returnServerError('Could not connect to memcached server');
-        $this->conn = $conn;
     }
 
-    public function loadData()
+    public function get(string $key, $default = null)
     {
-        if ($this->data) {
-            return $this->data;
+        $value = $this->conn->get($key);
+        if ($value === false) {
+            return $default;
         }
-        $result = $this->conn->get($this->getCacheKey());
+        return $value;
+    }
+
+    public function set(string $key, $value, $ttl = null): void
+    {
+        $expiration = $ttl === null ? 0 : time() + $ttl;
+        $result = $this->conn->set($key, $value, $expiration);
         if ($result === false) {
-            return null;
+            Logger::warning('Failed to store an item in memcached', [
+                'key'           => $key,
+                'code'          => $this->conn->getLastErrorCode(),
+                'message'       => $this->conn->getLastErrorMessage(),
+                'number'        => $this->conn->getLastErrorErrno(),
+            ]);
+            // Intentionally not throwing an exception
         }
-
-        $this->time = $result['time'];
-        $this->data = $result['data'];
-        return $result['data'];
     }
 
-    public function saveData($data): void
+    public function delete(string $key): void
     {
-        $time = time();
-        $object_to_save = [
-            'data' => $data,
-            'time' => $time,
-        ];
-        $result = $this->conn->set($this->getCacheKey(), $object_to_save, $this->expiration);
-
-        if ($result === false) {
-            throw new \Exception('Cannot write the cache to memcached server');
-        }
-
-        $this->time = $time;
+        $this->conn->delete($key);
     }
 
-    public function getTime(): ?int
+    public function clear(): void
     {
-        if ($this->time === null) {
-            $this->loadData();
-        }
-        return $this->time;
+        $this->conn->flush();
     }
 
-    public function purgeCache(int $seconds): void
+    public function prune(): void
     {
-        // Note: does not purges cache right now
-        // Just sets cache expiration and leave cache purging for memcached itself
-        $this->expiration = $seconds;
-    }
-
-    public function setScope(string $scope): void
-    {
-        $this->scope = $scope;
-    }
-
-    public function setKey(array $key): void
-    {
-        $this->key = json_encode($key);
-    }
-
-    private function getCacheKey()
-    {
-        if (is_null($this->key)) {
-            throw new \Exception('Call "setKey" first!');
-        }
-
-        return 'rss_bridge_cache_' . hash('md5', $this->scope . $this->key . 'A');
+        // memcached manages pruning on its own
     }
 }
