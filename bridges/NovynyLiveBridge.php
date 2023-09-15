@@ -35,19 +35,21 @@ class NovynyLiveBridge extends BridgeAbstract
 
 				$item['uri'] = $post->getAttribute('href');
 
-				// $dateString = $post->find('time')[0];
-				// $dateString = $dateString->getAttribute('datetime');
-				// $date = DateTime::createFromFormat('Y-m-d H:i:s', $dateString, $timezone);
-				// $isoDate = $date->format("Y-m-d\\TH:i:sO");
-				// // echo $isoDate . ' ';
-				// $item['timestamp'] = $isoDate;
-
-				// $i = 0;
 				if ($this->getInput('get_articles_text')){
 					$post_page = getSimpleHTMLDOMCached($item['uri']);
 
 					$content = $post_page->find('.content')[0];
 					if (!$content) continue;
+
+					$date_string = $content->find('.content__info-create')[0]->plaintext;
+					if ($date_string) {
+						$date_string = translate_date_to_english($date_string);
+						// Оригінальна дата має вигляд: 15 вересня 2023 13:55
+						// Формати тут: https://www.php.net/manual/ru/datetimeimmutable.createfromformat.php
+						$date = DateTime::createFromFormat('j F Y G:i', $date_string, $timezone);
+						$iso_date = $date->format("Y-m-d\\TH:i:sO");
+						$item['timestamp'] = $iso_date;
+					}
 
 					$garbage = array_merge(
 						$content->find('.content__sticky'),
@@ -56,10 +58,6 @@ class NovynyLiveBridge extends BridgeAbstract
 						$content->find('.article-categories'),
 						$content->find('.content__hint'),
 						$content->find('figcaption'),
-				// 		$content->find('i.icon'),
-						// $content->find('script'),
-						// $content->find('style'),
-				// 		$content->find('a[style="text-decoration:none"]')
 					);
 					foreach ($garbage as $key => $value) {
 						$value->remove();
