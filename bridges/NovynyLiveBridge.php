@@ -58,6 +58,7 @@ class NovynyLiveBridge extends BridgeAbstract
 						$content->find('.article-categories'),
 						$content->find('.content__hint'),
 						$content->find('figcaption'),
+						$content->find('iframe'),
 					);
 					foreach ($garbage as $key => $value) {
 						$value->remove();
