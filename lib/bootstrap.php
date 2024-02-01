@@ -1,16 +1,6 @@
 <?php
 
-if (version_compare(\PHP_VERSION, '7.4.0') === -1) {
-    exit('RSS-Bridge requires minimum PHP version 7.4.0!');
-}
-
-// Path to the formats library
-const PATH_LIB_FORMATS = __DIR__ . '/../formats/';
-
-/** Path to the caches library */
 const PATH_LIB_CACHES = __DIR__ . '/../caches/';
-
-/** Path to the cache folder */
 const PATH_CACHE = __DIR__ . '/../cache/';
 
 // Allow larger files for simple_html_dom
@@ -26,6 +16,7 @@ $files = [
     __DIR__ . '/../lib/http.php',
     __DIR__ . '/../lib/logger.php',
     __DIR__ . '/../lib/url.php',
+    __DIR__ . '/../lib/seotags.php',
     // Vendor
     __DIR__ . '/../vendor/parsedown/Parsedown.php',
     __DIR__ . '/../vendor/php-urljoin/src/urljoin.php',
@@ -50,11 +41,6 @@ spl_autoload_register(function ($className) {
         }
     }
 });
-
-$errors = Configuration::checkInstallation();
-if ($errors) {
-    exit('<pre>' . implode("\n", $errors) . '</pre>');
-}
 
 $customConfig = [];
 if (file_exists(__DIR__ . '/../config.ini.php')) {
