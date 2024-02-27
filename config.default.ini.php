@@ -21,7 +21,6 @@ enabled_bridges[] = Telegram
 enabled_bridges[] = ThePirateBay
 enabled_bridges[] = TikTokBridge
 enabled_bridges[] = Twitch
-enabled_bridges[] = Twitter
 enabled_bridges[] = Vk
 enabled_bridges[] = XPathBridge
 enabled_bridges[] = Youtube
@@ -99,6 +98,16 @@ name = "Hidden proxy name"
 ; true  = enabled
 ; false = disabled (default)
 by_bridge = false
+
+[webdriver]
+
+; Sets the url of the webdriver or selenium server
+selenium_server_url = "http://localhost:4444"
+
+; Sets whether the browser should run in headless mode (no visible ui)
+; true = enabled
+; false = disabled (default)
+headless = false
 
 [authentication]
 
