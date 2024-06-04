@@ -121,7 +121,7 @@ class RedditBridge extends BridgeAbstract
         $comments = false;
         $frontend = $this->getInput('frontend');
         if ($frontend == '') {
-                $frontend = 'https://old.reddit.com';
+            $frontend = 'https://old.reddit.com';
         }
         $section = $this->getInput('d');
 
@@ -189,7 +189,7 @@ class RedditBridge extends BridgeAbstract
                     // Comment
 
                     $item['content'] = htmlspecialchars_decode($data->body_html);
-                } elseif ($data->is_self) {
+                } elseif ($data->is_self && isset($data->selftext_html)) {
                     // Text post
 
                     $item['content'] = htmlspecialchars_decode($data->selftext_html);
