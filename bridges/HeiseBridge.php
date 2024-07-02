@@ -166,6 +166,11 @@ class HeiseBridge extends FeedExpander
         ) {
             $element->remove();
         }
+        foreach ($article->find('img') as $element) {
+            if (str_contains($element->alt, 'l+f')) {
+                $element->remove();
+            }
+        }
         // reload html, as remove() is buggy
         $article = str_get_html($article->outertext);
 
@@ -214,7 +219,7 @@ class HeiseBridge extends FeedExpander
         $content = $article->find('.article-content', 0);
         if ($content) {
             $contentElements = $content->find(
-                'p, h3, ul, ol, table, pre, noscript img, a-bilderstrecke h2, a-bilderstrecke figure, a-bilderstrecke figcaption'
+                'p, h3, ul, ol, table, pre, noscript img, a-bilderstrecke h2, a-bilderstrecke figure, a-bilderstrecke figcaption, noscript iframe'
             );
             $item['content'] .= implode('', $contentElements);
         }
