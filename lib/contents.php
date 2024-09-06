@@ -14,8 +14,13 @@ function getContents(
     array $curlOptions = [],
     bool $returnFull = false
 ) {
-    $httpClient = RssBridge::getHttpClient();
-    $cache = RssBridge::getCache();
+    global $container;
+
+    /** @var HttpClient $httpClient */
+    $httpClient = $container['http_client'];
+
+    /** @var CacheInterface $cache */
+    $cache = $container['cache'];
 
     // TODO: consider url validation at this point
 
@@ -142,7 +147,6 @@ function getContents(
  * when returning plaintext.
  * @param string $defaultSpanText Specifies the replacement text for `<span />`
  * tags when returning plaintext.
- * @return false|simple_html_dom Contents as simplehtmldom object.
  */
 function getSimpleHTMLDOM(
     $url,
@@ -154,11 +158,12 @@ function getSimpleHTMLDOM(
     $stripRN = true,
     $defaultBRText = DEFAULT_BR_TEXT,
     $defaultSpanText = DEFAULT_SPAN_TEXT
-) {
+): \simple_html_dom {
     $html = getContents($url, $header ?? [], $opts ?? []);
     if ($html === '') {
         throw new \Exception('Unable to parse dom because the http response was the empty string');
     }
+
     return str_get_html(
         $html,
         $lowercase,
@@ -212,7 +217,11 @@ function getSimpleHTMLDOMCached(
     $defaultBRText = DEFAULT_BR_TEXT,
     $defaultSpanText = DEFAULT_SPAN_TEXT
 ) {
-    $cache = RssBridge::getCache();
+    global $container;
+
+    /** @var CacheInterface $cache */
+    $cache = $container['cache'];
+
     $cacheKey = 'pages_' . $url;
     $content = $cache->get($cacheKey);
     if (!$content) {

@@ -37,6 +37,7 @@ spl_autoload_register(function ($className) {
         __DIR__ . '/../caches/',
         __DIR__ . '/../formats/',
         __DIR__ . '/../lib/',
+        __DIR__ . '/../middlewares/',
     ];
     foreach ($folders as $folder) {
         $file = $folder . $className . '.php';
@@ -45,9 +46,3 @@ spl_autoload_register(function ($className) {
         }
     }
 });
-
-$customConfig = [];
-if (file_exists(__DIR__ . '/../config.ini.php')) {
-    $customConfig = parse_ini_file(__DIR__ . '/../config.ini.php', true, INI_SCANNER_TYPED);
-}
-Configuration::loadConfiguration($customConfig, getenv());
