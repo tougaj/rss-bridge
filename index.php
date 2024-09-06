@@ -13,7 +13,6 @@ if (! is_readable(__DIR__ . '/lib/bootstrap.php')) {
 }
 
 require_once __DIR__ . '/lib/bootstrap.php';
-require_once __DIR__ . '/lib/tUtils.php';
 
 set_exception_handler(function (\Throwable $e) {
     $response = new Response(render(__DIR__ . '/templates/exception.html.php', ['e' => $e]), 500);
