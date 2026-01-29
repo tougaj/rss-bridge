@@ -3,7 +3,7 @@
 class GolemBridge extends FeedExpander
 {
     const MAINTAINER = 'Mynacol';
-    const NAME = 'Golem Bridge';
+    const NAME = 'Golem';
     const URI = 'https://www.golem.de/';
     const CACHE_TIMEOUT = 1800; // 30min
     const DESCRIPTION = 'Returns the full articles instead of only the intro';
@@ -115,17 +115,25 @@ class GolemBridge extends FeedExpander
 
         $article = $page->find('article', 0);
 
-        //built youtube iframes
-        foreach ($article->find('.go-embed-container') as &$embedcontent) {
-            foreach ($page->find('script') as $ytscript) {
-                if (preg_match('/(www.youtube.com.*?)\"/', $ytscript->innertext, $link)) {
-                    $link = 'https://' . str_replace('\\', '', $link[1]);
-                    $embedcontent->innertext .= <<<EOT
-                        <iframe width="560" height="315" src="$link" title="YouTube video player" frameborder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>';
-                    EOT;
-                    break;
+        // extract embeds from script tags (unfortunately no JSON)
+        $embedSrcs = [];
+        foreach ($page->find('script') as $script) {
+            // Ungreedy match to get precisely the snippet of one embed
+            if (preg_match_all('/type:\s*\"Embed(.*)urlPrivacy:/U', $script, $embeds)) {
+                foreach ($embeds[1] as $embed) {
+                    if (preg_match('/src:\s*\"([^\"]+)\"/', $embed, $src)) {
+                        $embedSrcs[] = $src[1];
+                    }
+                }
+            }
+        }
+        // inject the embed into the HTML placeholder
+        $placeholders = $article->find('.go-embed-container');
+        foreach (range(0, count($placeholders) - 1) as $i) {
+            if (array_key_exists($i, $embedSrcs)) {
+                $src = $embedSrcs[$i];
+                if (preg_match('/youtube(-nocookie)?\.com/', $src, $match)) {
+                    $placeholders[$i]->innertext = handleYoutube($src);
                 }
             }
         }

@@ -13,42 +13,30 @@ class CybernewsBridge extends BridgeAbstract
 
     public function collectData()
     {
-        $sitemapXml = getContents(self::URI . '/news-sitemap.xml');
+        $urls = get_sitemap('https://cybernews.com/news-sitemap.xml');
 
-        if (!$sitemapXml) {
-            throwServerException('Unable to retrieve Cybernews sitemap');
-        }
-
-        $sitemap = simplexml_load_string($sitemapXml, null, LIBXML_NOCDATA);
-
-        if (!$sitemap) {
-            throwServerException('Unable to parse Cybernews sitemap');
-        }
-
-        foreach ($sitemap->url as $entry) {
-            $url        = trim((string) $entry->loc);
-            $lastmod    = trim((string) $entry->lastmod);
+        foreach ($urls as $entry) {
+            $url     = $entry['loc'];
+            $lastmod = $entry['lastmod'];
 
             if (!$url) {
                 continue;
             }
 
-            $pathParts  = explode('/', trim(parse_url($url, PHP_URL_PATH), '/'));
-            $category   = isset($pathParts[0]) && $pathParts[0] !== '' ? $pathParts[0] : '';
+            $pathParts = explode('/', trim(parse_url($url, PHP_URL_PATH), '/'));
+            $category  = isset($pathParts[0]) && $pathParts[0] !== '' ? $pathParts[0] : '';
 
             // Skip non-English versions
-            if (in_array($category, ['nl', 'de'], true)) {
-                continue;
-            }
+            // if (in_array($category, ['nl', 'de', 'es', 'it'], true)) {
+            //     continue;
+            // }
 
-            $namespaces = $entry->getNamespaces(true);
             $title      = '';
 
-            if (isset($namespaces['news'])) {
-                $news = $entry->children($namespaces['news'])->news;
-
+            if (isset($entry['news'])) {
+                $news = $entry['news'];
                 if ($news) {
-                    $title = trim((string) $news->title);
+                    $title = trim((string) $news['title']);
                 }
             }
 
@@ -74,18 +62,15 @@ class CybernewsBridge extends BridgeAbstract
     private function fetchFullArticle(string $url): string
     {
         $html = getSimpleHTMLDOMCached($url);
-
         if (!$html) {
             return 'Unable to fetch article content';
         }
 
         $article = $html->find('article', 0);
-
         if (!$article) {
             return 'Unable to parse article content';
         }
 
-        // Remove unnecessary elements
         $removeSelectors = [
             'script',
             'style',
